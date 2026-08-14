@@ -89,39 +89,45 @@ app.set('io', io);
 // MongoDB Connection & Initialization
 (async () => {
   try {
+    const mongoose = require('mongoose');
     await initializeDatabase();
-    setupAssociations();
-    console.log('✅ MongoDB Database Connected');
+    
+    if (mongoose.connection.readyState === 1) {
+      setupAssociations();
+      console.log('✅ MongoDB Database Connected & Associations Loaded');
 
-    // Automatically populate mock analytics for any creator that has uninitialized values (like Manav Patel)
-    const User = require('./models/User');
-    const creators = await User.find({ role: 'creator' });
-    for (const c of creators) {
-      const p = c.creatorProfile || {};
-      if (!p.aiScore || p.aiScore === 0 || !p.totalFollowers) {
-        const followers = Math.floor(10000 + Math.random() * 90000);
-        const engagement = parseFloat((3 + Math.random() * 5).toFixed(2));
-        const fake = Math.floor(2 + Math.random() * 10);
-        const aiScore = Math.floor(70 + Math.random() * 20);
+      // Automatically populate mock analytics for any creator that has uninitialized values (like Manav Patel)
+      const User = require('./models/User');
+      const creators = await User.find({ role: 'creator' });
+      for (const c of creators) {
+        const p = c.creatorProfile || {};
+        if (!p.aiScore || p.aiScore === 0 || !p.totalFollowers) {
+          const followers = Math.floor(10000 + Math.random() * 90000);
+          const engagement = parseFloat((3 + Math.random() * 5).toFixed(2));
+          const fake = Math.floor(2 + Math.random() * 10);
+          const aiScore = Math.floor(70 + Math.random() * 20);
 
-        c.creatorProfile = {
-          niche: p.niche && p.niche.length > 0 ? p.niche : ['Tech', 'Lifestyle'],
-          socialLinks: p.socialLinks && Object.keys(p.socialLinks).length > 0 ? p.socialLinks : {
-            instagram: { username: c.name.toLowerCase().replace(/ /g, '_'), followers: Math.floor(followers * 0.6) },
-            youtube: { username: c.name.toLowerCase().replace(/ /g, ''), subscribers: Math.floor(followers * 0.4) }
-          },
-          aiScore,
-          totalFollowers: followers,
-          engagementRate: engagement,
-          fakeFollowerPercentage: fake,
-          bio: p.bio || 'Content creator sharing tech reviews and styling ideas.',
-          location: p.location || 'Mumbai, India',
-          portfolio: p.portfolio || []
-        };
-        c.markModified('creatorProfile');
-        await c.save();
-        console.log(`[Database Init] Populated mock profile metrics for creator: ${c.name}`);
+          c.creatorProfile = {
+            niche: p.niche && p.niche.length > 0 ? p.niche : ['Tech', 'Lifestyle'],
+            socialLinks: p.socialLinks && Object.keys(p.socialLinks).length > 0 ? p.socialLinks : {
+              instagram: { username: c.name.toLowerCase().replace(/ /g, '_'), followers: Math.floor(followers * 0.6) },
+              youtube: { username: c.name.toLowerCase().replace(/ /g, ''), subscribers: Math.floor(followers * 0.4) }
+            },
+            aiScore,
+            totalFollowers: followers,
+            engagementRate: engagement,
+            fakeFollowerPercentage: fake,
+            bio: p.bio || 'Content creator sharing tech reviews and styling ideas.',
+            location: p.location || 'Mumbai, India',
+            portfolio: p.portfolio || []
+          };
+          c.markModified('creatorProfile');
+          await c.save();
+          console.log(`[Database Init] Populated mock profile metrics for creator: ${c.name}`);
+        }
       }
+    } else {
+      console.warn('⚠️ Mongoose connection not active. Skipping MongoDB models seeding.');
     }
   } catch (err) {
     console.error('❌ Database Initialization Error:', err);

@@ -50,13 +50,15 @@ const uri = process.env.MONGODB_URI;
 async function initializeDatabase() {
   try {
     if (!uri) {
-      throw new Error('❌ MONGODB_URI environment variable is missing!');
+      console.warn('⚠️ MONGODB_URI environment variable is missing. Running in local SQLite mode.');
+      return;
     }
-    await mongoose.connect(uri);
+    // Set connection timeout short (3 seconds) to prevent long hangs on startup
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
     console.log('✅ MongoDB Database connected successfully.');
   } catch (err) {
-    console.error('❌ Error connecting to MongoDB:', err);
-    throw err;
+    console.warn('⚠️ Error connecting to MongoDB (Running in SQLite-only security mode):', err.message);
+    // Do not re-throw to allow server startup without remote database whitelist
   }
 }
 
